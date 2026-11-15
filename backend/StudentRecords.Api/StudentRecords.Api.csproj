@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><UserSecretsId>CampusRecords.LocalDevelopment</UserSecretsId></PropertyGroup>
+  <ItemGroup><PackageReference Include="MongoDB.Driver" Version="3.13.0" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../shared/StudentRecords.Backup.Core/StudentRecords.Backup.Core.csproj" /></ItemGroup>
+</Project>

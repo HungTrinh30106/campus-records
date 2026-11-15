@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="shared/StudentRecords.Backup.Core/StudentRecords.Backup.Core.csproj" />
+  <Project Path="tools/StudentRecords.SecurityLab/StudentRecords.SecurityLab.csproj" />
+  <Project Path="backend/StudentRecords.Api/StudentRecords.Api.csproj" />
+  <Project Path="tools/StudentRecords.Backup/StudentRecords.Backup.csproj" />
+  <Project Path="tests/StudentRecords.Api.Tests/StudentRecords.Api.Tests.csproj" />
+  <Project Path="tests/StudentRecords.Backup.Tests/StudentRecords.Backup.Tests.csproj" />
+</Solution>

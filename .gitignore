@@ -1,0 +1,28 @@
+**/bin/
+**/obj/
+**/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+.local/
+Data/
+artifacts/
+backups/
+*.crbackup
+.env
+.env.*
+!.env.example
+**/appsettings.*.local.json
+.vs/
+TestResults/
+
+# Local course/presentation material is intentionally not part of this repository.
+/docs/
+/presentation/
+*.pptx
+*.pdf
+# Private local storage and credentials
+**/private-uploads/
+**/secrets.json
+*.pfx
+*.p12
+*.key
