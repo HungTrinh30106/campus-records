@@ -1,65 +1,67 @@
 # Campus Records
 
-A full-stack student records management application built with **React, TypeScript, Tailwind CSS, ASP.NET Core and MongoDB Atlas**.
+Campus Records is a student records portal for university administrators, department staff and students. An administrator can manage the university directory, a staff member can update records in one department, and a student can edit their own contact details. The interface is in Vietnamese.
 
-The application combines everyday academic administration with server-side access control, private document storage, audit trails and encrypted backups. The interface is in Vietnamese.
+**Frontend** · React 19, TypeScript, Tailwind CSS 4, Vite
 
-## Features
+**Backend** · C#, ASP.NET Core MVC on .NET 10, ASP.NET Core Identity
 
-- **Student records:** create and update profiles, manage departments, search, filter, sort and paginate records.
-- **Role-based access:** Admin, Staff and Student roles with department and individual record scopes enforced by the API.
-- **Sensitive data protection:** mask contact and identification fields and omit GPA for Staff responses and exports.
-- **Private documents:** upload PDF, PNG or JPEG files, validate size and file signatures, and authorize downloads against the associated record.
-- **CSV reports:** apply the same scope and masking as the API, limit exports and neutralize spreadsheet formula prefixes.
-- **Account management:** ASP.NET Core Identity password hashing, lockout, password changes and session revocation after account or permission changes.
-- **Operations dashboard:** request metrics, latency, process CPU/RAM, persistent security alerts and MongoDB change events.
-- **Encrypted backups:** shared API/CLI archive implementation, manual and scheduled jobs, verification and restoration into a new database and upload directory.
+**Storage** · MongoDB Atlas for records and metadata, private filesystem storage for attachments
 
-## Tech stack
+## Features and access
 
-| Layer | Technology |
-| --- | --- |
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4, React Router |
-| Backend | C#, ASP.NET Core / .NET 10, ASP.NET Core Identity |
-| Database | MongoDB Atlas, MongoDB C# Driver |
-| Testing | xUnit, ASP.NET Core integration testing, Vitest, React Testing Library |
-| Backup encryption | AES-256-GCM and PBKDF2-SHA256 |
+| Role | Record scope | What the user can do |
+| --- | --- | --- |
+| Admin | All departments | Manage student records, departments and account permissions. Review reports, audit events and backup runs. |
+| Staff | Assigned department | Create records, update names and academic fields, search the directory and export a departmental report. Contact and ID fields are masked and GPA is withheld in reports. |
+| Student | Own linked record | View their academic profile, edit email, phone and address, and manage supporting documents. |
 
-## Architecture
+- **Directory and reports.** Search, filter, sort and paginate student records. CSV exports use the caller's record scope and protect spreadsheet cells against formula interpretation.
+- **Private attachments.** Upload PDF, PNG or JPEG files up to 5 MiB. The API checks the extension, declared content type and file signature, stores the file under a generated name and checks record access on download.
+- **Accounts and audit.** Cookie sessions, CSRF tokens and Identity password hashing protect account actions. Repeated failed logins trigger lockout. Profile updates, document downloads and report exports leave audit entries.
+- **Operations and recovery.** Admins can inspect request latency, resource usage and alerts. Optional MongoDB change streams track writes. Encrypted backups include both database records and attachments and can be restored into a fresh database and upload directory.
+
+## How MVC works here
+
+React renders the **View**. ASP.NET Core **Controllers** map HTTP routes to feature services. Services enforce the business rules and use the **Models** and MongoDB driver to read or update records. DTOs select the fields sent back to the browser.
+
+For example, opening a student profile takes three steps.
+
+1. The [React detail page](frontend/src/pages/StudentDetail.tsx) requests `GET /api/students/{id}`.
+2. [StudentsController](backend/StudentRecords.Api/Controllers/StudentsController.cs) binds the route ID and calls [StudentsService](backend/StudentRecords.Api/Services/StudentsService.cs). The [record query](backend/StudentRecords.Api/Services/ApiSupport.cs) combines that ID with the signed-in user's scope before reading MongoDB.
+3. The [student DTO](backend/StudentRecords.Api/Dtos/Dto.cs) applies the field visibility rules. React renders the resulting JSON. The same record can therefore show a full email address to an admin and a masked address to department staff.
+
+### Repository layout
 
 ```text
-React application
-    |
-    | Same-origin /api requests, authentication cookie and CSRF token
-    v
-ASP.NET Core API
-    | Identity, validation, role checks, record scope and response DTOs
-    |
-    +-- MongoDB: users, departments, students, document metadata and journals
-    +-- Private filesystem: uploaded document contents
-    +-- Backup Core: encrypted BSON and document archives
+backend/StudentRecords.Api/
+  Program.cs         API entry point and startup
+  Controllers/       HTTP routes grouped by feature
+  Services/          Business rules, reports, audit and operations
+  Models/            Student, department, user, document and audit records
+  Dtos/              Response fields and masking
+  Data/              MongoDB collections, indexes and development seed data
+  Identity/          MongoDB user store for ASP.NET Core Identity
+  Middleware/        Request validation, error handling and security checks
+  Configurations/    Dependency injection and framework configuration
+  Helpers/           Shared validation, storage and CSV helpers
+frontend/src/
+  pages/             Directory, profile, dashboard and administration screens
+  components/        Forms, navigation and shared UI
+  api.ts             Browser API client
+shared/StudentRecords.Backup.Core/    Archive, encryption and restore logic
+tools/StudentRecords.Backup/          Backup, verify and restore CLI
+tests/                                API and backup test projects
+scripts/                              Setup, development, build and test scripts
 ```
 
-The browser never connects directly to MongoDB. Database credentials and backup keys remain on the backend. MongoDB stores document metadata; uploaded file contents are stored outside the public web directory.
+## Run locally on Windows
 
-## Access model
+Install Git, the **.NET 10 SDK**, **Node.js 22.12+** with npm and **PowerShell 7**. The `.cmd` launchers can be called from Windows PowerShell 5.1 or a Visual Studio terminal and will locate the installed PowerShell 7 runtime.
 
-| Role | Data scope | Capabilities |
-| --- | --- | --- |
-| Admin | Entire application | Manage records, departments, account permissions, reports, audit and operations |
-| Staff | Assigned department | Create records and update permitted academic fields; view masked data and scoped reports |
-| Student | Linked student record | View their own record and update permitted contact fields |
+### 1. Configure the database and install dependencies
 
-Authorization is enforced on the server for both record and document requests. Changing an ID in a URL does not remove the caller's scope.
-
-## Run locally
-
-### Prerequisites
-
-- .NET 10 SDK
-- Node.js 22.12 or newer supported LTS version
-- PowerShell 7 for the supplied scripts
-- MongoDB Atlas or a local MongoDB instance
+Use a MongoDB Atlas database user with `readWrite` on `campus_records` and allow your machine's IP in the project's IP access list. Copy the driver's connection string for your cluster and supply the database user's credentials. For a local MongoDB server, use `mongodb://localhost:27017`.
 
 ```powershell
 git clone https://github.com/HungTrinh30106/campus-records.git
@@ -67,90 +69,48 @@ cd campus-records
 .\Setup.cmd
 ```
 
-Setup installs dependencies and prompts for the MongoDB connection string and a strong password for optional development seed accounts. It saves configuration in .NET User Secrets, outside the repository.
+At the prompts, enter the connection string, then choose and confirm a password for the three local demo accounts. Use 10–128 characters with uppercase, lowercase, a digit and a special character. Setup restores .NET packages, installs frontend dependencies and stores development settings in .NET User Secrets.
 
-For Atlas, create a database user limited to the application's database and allow the API machine's IP address. Keep TLS certificate verification enabled.
+### 2. Start the API and the frontend
 
-Start the API in the first terminal:
+From the repository root, open two terminals. In **terminal 1**, start the API and seed a fresh development database.
 
 ```powershell
-# First run only, when development seed data is wanted:
 .\Start-Api.cmd -Seed
-
-# Subsequent runs:
-.\Start-Api.cmd
 ```
 
-Start the frontend in a second terminal:
+In **terminal 2**, start the React dev server.
 
 ```powershell
 .\Start-Frontend.cmd
 ```
 
-Open **http://127.0.0.1:5173**. API health is available at **http://localhost:5080/api/health**. Keep both processes running.
+Open the [student portal](http://127.0.0.1:5173). Vite forwards `/api` requests to port 5080. To check the API and its MongoDB connection, visit the [health endpoint](http://localhost:5080/api/health) and look for `{"status":"healthy"}`.
 
-With seeding enabled in Development, the initial accounts are `admin@campus.local`, `staff@campus.local` and `student@campus.local`. Their password is the value supplied during Setup; there is no password embedded in the repository. Running seed again does not reset existing passwords.
+### 3. Explore the seeded data
 
-You can also launch the processes directly after configuring secrets:
+A fresh seed creates **18 student profiles across three departments**. Sign in with the password you chose during setup.
 
-```powershell
-dotnet run --project backend/StudentRecords.Api
-npm --prefix frontend run dev
-```
-
-### Configuration
-
-| Key | Purpose |
+| Account | Try this |
 | --- | --- |
-| `Mongo:ConnectionString` | Private MongoDB connection string |
-| `Mongo:Database` | Application database, default `campus_records` |
-| `Storage:Path` | Private upload directory |
-| `ChangeStreams:Enabled` | Opt-in write-event tracking on Atlas or a replica set |
-| `Backup:Path` | Private archive directory, separate from uploads |
-| `Backup:Password` | Archive encryption secret, stored separately from archives |
-| `Backup:Enabled` | Enable the background schedule while the API is running |
+| `admin@campus.local` | Open the directory, find a student and review their complete profile. |
+| `staff@campus.local` | Open the departmental report and export the CSV. Compare the email and GPA fields with the admin view. |
+| `student@campus.local` | Open your profile, update your phone number and reload to see the saved change. |
 
-Environment variables use double underscores, such as `Mongo__ConnectionString`. User Secrets use the ID `CampusRecords.LocalDevelopment`. User Secrets are for development and are not an encrypted production vault.
-
-On Windows, `Setup-Operations.cmd` configures change streams and daily encrypted backups, retains seven owned archives and preserves an existing backup key. Restart the API after configuration.
+**On subsequent launches**, run `.\Start-Api.cmd` and `.\Start-Frontend.cmd` in separate terminals. To launch the API directly after setup, use `dotnet run --project backend/StudentRecords.Api --launch-profile StudentRecords.Api`.
 
 ## Build and test
 
-```powershell
-pwsh -NoProfile -File scripts/Build.ps1
-pwsh -NoProfile -File scripts/Test.ps1
-```
+From the repository root after setup, use these commands.
 
-The build script publishes the API and the compiled frontend into an ignored `artifacts/` directory. The test script starts a disposable local MongoDB process, runs the .NET test suites and frontend tests, builds the frontend, then cleans up its database directory. Install MongoDB Community with `mongod` available before running the complete integration suite. Change-stream tests start an isolated replica set.
+| Command | Result |
+| --- | --- |
+| `npm --prefix frontend test` | Runs the Vitest suite for the React client. |
+| `pwsh -File scripts/Test.ps1` | Runs the .NET API and backup tests, the frontend tests and a frontend build. Install MongoDB Community Server locally for the default isolated test run. |
+| `pwsh -File scripts/Build.ps1` | Produces a Release API with the compiled React app in `artifacts/publish-*/`. |
 
-For frontend-only checks:
+The [API tests](tests/StudentRecords.Api.Tests) exercise MVC routing, record scope, CSRF, session handling, upload validation and report masking. The [backup tests](tests/StudentRecords.Backup.Tests) cover archive integrity and restoration of BSON records and files.
 
-```powershell
-npm --prefix frontend test
-npm --prefix frontend run build
-```
+### Optional operations setup
 
-Tests cover role and record scope, IDOR, CSRF, lockout, session revocation, file validation, report masking, backup integrity, BSON/file restoration, retention ownership and change-stream recovery. Additional isolated security labs are available through `SecurityLab.cmd` and `XssLab.cmd`.
-
-Never use a production database as a test target.
-
-## Project structure
-
-```text
-backend/StudentRecords.Api/       API, Identity store and authorization
-frontend/                        React application and component tests
-shared/StudentRecords.Backup.Core/ Shared archive, encryption and restore logic
-tests/                           API and backup integration tests
-tools/StudentRecords.Backup/      Backup, verify and restore CLI
-tools/StudentRecords.SecurityLab/ Isolated native MongoDB checks
-tools/xss-lab/                    Standalone localhost security example
-scripts/                         Setup, development, build and test tooling
-```
-
-## Operational boundaries
-
-- Change streams track writes and minimal event metadata. They do not audit reads or identify users performing direct MongoDB writes.
-- Coordinated backup admission covers one API instance. Stop other writers to keep database records and uploaded files consistent. The scheduler runs only while the API is running.
-- Restore into a new, empty database and upload directory, then validate before directing the application to them. Preserve the backup key separately.
-- Rate limiting and caching are per process. Production needs HTTPS, appropriate secret storage, filesystem permissions and deployment-specific monitoring.
-- File type checks do not replace malware scanning. MFA, email-based password recovery and multi-instance high availability are outside the current implementation.
+Run `.\Setup-Operations.cmd` to configure change streams and scheduled encrypted backups, then restart the API. Change streams require Atlas or a replica set. The scheduler runs while the API is up, and backup coordination covers one API instance. Keep the encryption password separately from the archives for recovery.
