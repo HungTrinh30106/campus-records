@@ -5,6 +5,9 @@ frontend/dist/
 frontend/*.tsbuildinfo
 .local/
 Data/
+!backend/StudentRecords.Api/Data/
+backend/StudentRecords.Api/Data/*
+!backend/StudentRecords.Api/Data/*.cs
 artifacts/
 backups/
 *.crbackup

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+
 namespace StudentRecords.Api;
 
 public static class IdentityOperations
@@ -9,15 +10,19 @@ public static class IdentityOperations
     {
         for (var attempt = 0; attempt < 20; attempt++)
         {
-            if (!user.Enabled || await manager.IsLockedOutAsync(user)) return;
+            if (!user.Enabled || await manager.IsLockedOutAsync(user))
+                return;
             var result = await manager.AccessFailedAsync(user);
-            if (result.Succeeded) return;
+            if (result.Succeeded)
+                return;
             if (!result.Errors.Any(e => e.Code == "ConcurrencyFailure"))
                 throw new ApiException(409, "Tài khoản đã thay đổi. Vui lòng thử lại.");
             var current = await manager.FindByIdAsync(user.Id);
-            if (current is null) return;
+            if (current is null)
+                return;
             user = current;
         }
+
         throw new ApiException(429, "Quá nhiều yêu cầu đăng nhập đồng thời.");
     }
 }

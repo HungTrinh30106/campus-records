@@ -13,6 +13,7 @@ public sealed class OperationAlert : Entity
     public DateTime LastSeenAt { get; set; } = DateTime.UtcNow;
     public bool Acknowledged { get; set; }
 }
+
 public sealed class DatabaseEvent : Entity
 {
     // Stable hash of the resume token makes replay after a crash idempotent.
@@ -23,11 +24,14 @@ public sealed class DatabaseEvent : Entity
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public string ActorSource { get; set; } = "unknown/directDatabase";
 }
+
 public sealed class WatcherResume
 {
-    [BsonId] public string Id { get; set; } = "business";
+    [BsonId]
+    public string Id { get; set; } = "business";
     public BsonDocument? Token { get; set; }
 }
+
 public sealed class BackupRun : Entity
 {
     // Imported history is not ownership of the source database's archive files.
@@ -40,8 +44,10 @@ public sealed class BackupRun : Entity
     public long? SizeBytes { get; set; }
     public string? ErrorCode { get; set; }
 }
+
 public sealed class BackupSchedule
 {
-    [BsonId] public string Id { get; set; } = "schedule";
+    [BsonId]
+    public string Id { get; set; } = "schedule";
     public DateTime NextRunAt { get; set; }
 }
